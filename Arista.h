@@ -16,4 +16,6 @@ public:
         return (origen == otra.origen && destino == otra.destino) ||
             (origen == otra.destino && destino == otra.origen);
     }
+    int get_origen() const { return origen; }
+    int get_destino() const { return destino; }
 };

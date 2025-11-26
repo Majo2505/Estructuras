@@ -8,13 +8,14 @@
 #include <stdexcept>
 #include "Arista.h" 
 
+using namespace std;
 class Grafo 
 {
 public:
     // Estructuras de Datos
-    std::unordered_map<int, std::vector<int>> adj;
-    std::unordered_set<int> vertices_activos;
-    std::vector<Arista> todas_las_aristas;
+    unordered_map<int, std::vector<int>> adj;
+    unordered_set<int> vertices_activos;
+    vector<Arista> todas_las_aristas;
 
 private:
     int contador_id_vertices;
@@ -108,14 +109,12 @@ public:
             std::remove(lista_vecinos.begin(), lista_vecinos.end(), v),
             lista_vecinos.end()
         );
-
-ron.
         todas_las_aristas.erase(
             std::remove_if(todas_las_aristas.begin(), todas_las_aristas.end(),
                 [v](const Arista& a) {
-                    // Un auto-ciclo se forma cuando (origen == destino) en el nuevo super-vértice
-                    // o cuando (origen y destino) son el mismo ID (v)
-                    return (a.origen == v && a.destino == v);
+                    // Un auto-ciclo se forma cuando (get_origen() == get_destino()) en el nuevo super-vértice
+                    // o cuando (get_origen() y get_destino()) son el mismo ID (v)
+                    return (a.get_origen() == v && a.get_destino() == v);
                 }),
             todas_las_aristas.end()
         );

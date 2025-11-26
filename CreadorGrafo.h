@@ -52,10 +52,10 @@ public:
             std::string origen_str;
             std::string destino_str;
 
-            // Asumo un formato simple: V_origen V_destino (para cada arista)
+            // Asumo un formato simple: V_origen V_get_destino() (para cada arista)
             // Esto deberá adaptarse a tu formato de archivo exacto
             while (ss >> origen_str >> destino_str) {
-                // Si la línea contiene un par (origen, destino), procesar:
+                // Si la línea contiene un par (get_origen(), get_destino()), procesar:
 
                 // 2.1 Obtener los IDs numéricos, creando nuevos si es necesario.
                 int id_origen = obtener_id(origen_str);
@@ -77,15 +77,15 @@ public:
             // Llenar la lista de adyacencia (adj) y la lista de aristas activas (todas_las_aristas)
 
             // Lógica para llenar adj:
-            grafo_inicial.adj[arista.origen]().push_back(arista.destino);
-            grafo_inicial.adj[arista.destino].push_back(arista.origen); // Es no dirigido
+            grafo_inicial.adj[arista.get_origen()].push_back(arista.get_destino());
+            grafo_inicial.adj[arista.get_destino()].push_back(arista.get_origen()); // Es no dirigido
 
             // Llenar todas_las_aristas_activos
             grafo_inicial.todas_las_aristas.push_back(arista);
 
             // Asegurar que los vértices estén en vertices_activos
-            grafo_inicial.vertices_activos.insert(arista.origen);
-            grafo_inicial.vertices_activos.insert(arista.destino);
+            grafo_inicial.vertices_activos.insert(arista.get_origen());
+            grafo_inicial.vertices_activos.insert(arista.get_destino());
         }
 
         return grafo_inicial;
