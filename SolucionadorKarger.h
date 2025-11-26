@@ -5,7 +5,6 @@
 #include <string>
 #include <algorithm>
 #include <limits> // Para std::numeric_limits<int>::max()
-
 // Asumimos que las clases Grafo, Arista y CreadorGrafo están definidas o incluidas
 #include "Grafo.h" 
 #include "Arista.h" 

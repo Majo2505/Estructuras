@@ -6,9 +6,10 @@
 #include <cstdlib>
 #include <ctime>
 #include <stdexcept>
-#include "Arista.h" 
+#include <algorithm> 
+#include "Arista.h"
 
-class Grafo 
+class Grafo
 {
 public:
     // Estructuras de Datos
@@ -17,132 +18,121 @@ public:
     std::vector<Arista> todas_las_aristas;
 
 private:
-    int contador_id_vertices;
+    int contador_id_vertices; // Puede dejarse o eliminarse, no es esencial si usamos un representante.
 
 public:
+    // --- FUNCIONES FALTANTES Y CORREGIDAS ---
 
-    Grafo(int num_inicial_vertices) : contador_id_vertices(num_inicial_vertices) {
-
-        std::srand(std::time(0));
+    // Constructor necesario para CreadorGrafo
+    Grafo(int num_inicial_vertices = 0) : contador_id_vertices(num_inicial_vertices) {
+        // Inicializa la semilla del generador de números aleatorios si no se ha hecho
+        // srand((unsigned int)time(0)); // Mejor hacerlo una vez en main()
     }
 
-    // Constructor por defecto (necesario para algunas operaciones)
-    Grafo() : contador_id_vertices(0) {}
-
-
-
+    // Copia Profunda (CRÍTICA para Karger)
     Grafo CopiaProfunda() const {
-        // Usar el constructor de copia
-        Grafo nueva_copia = *this;
-
-        // C++ maneja la copia profunda de vector, unordered_map, y unordered_set por defecto
-        // ya que contienen tipos primitivos (int) o tipos que tienen un operador de asignación
-        // de copia definido (Arista, vector, unordered_map, unordered_set).
-        return nueva_copia;
+        Grafo copia;
+        copia.adj = adj;
+        copia.vertices_activos = vertices_activos;
+        copia.todas_las_aristas = todas_las_aristas; // Copia de Aristas (tienen valor semántico)
+        copia.contador_id_vertices = contador_id_vertices;
+        return copia;
     }
 
-
-    // --------------------------------------------------------------------------------
-    // FUNCIONES DEL ALGORITMO (IMPLEMENTACIÓN DE LAS PRIMITIVAS)
-    // --------------------------------------------------------------------------------
-
-    Arista obtener_arista_aleatoria() {
+    // Obtener Arista Aleatoria (CRÍTICA para Karger)
+    Arista obtener_arista_aleatoria() const {
         if (todas_las_aristas.empty()) {
-            throw std::runtime_error("El grafo no tiene aristas activas.");
+            throw std::runtime_error("No hay aristas para contraer.");
         }
-
-        size_t tamano = todas_las_aristas.size();
-        // Usamos rand() % tamano para obtener un índice aleatorio.
-        int indice_azar = std::rand() % tamano;
-
-        return todas_las_aristas[indice_azar];
+        int indice_aleatorio = rand() % todas_las_aristas.size();
+        return todas_las_aristas[indice_aleatorio];
     }
 
- 
+    // Contar Corte Final (CRÍTICA para Karger)
+    int contar_corte_final() const {
+        // En este punto, solo deben quedar 2 super-vértices. 
+        // El corte es el número de aristas restantes entre ellos.
+        return todas_las_aristas.size();
+    }
+
+    // ---------------------------------------------------------------------
+    // FUNCIONES PROPORCIONADAS (CORREGIDAS)
+    // ---------------------------------------------------------------------
+
     void contraer(int v1, int v2) {
         // Decidimos que v1 será el vértice representante (el nuevo super-vértice).
         int representante = v1;
         int eliminado = v2;
 
-        // Evitar contracciones de un vértice consigo mismo
         if (v1 == v2) return;
 
-        // --- 1. Fusionar Listas de Adyacencia y Actualizar Vecinos ---
+        // ---------------------------------------------------------------------
+        // PASO CRÍTICO 1: Actualizar IDs en la Lista Global de Aristas
+        // ---------------------------------------------------------------------
+        for (Arista& a : todas_las_aristas) {
+            // USAR SETTERS EN LUGAR DE ACCESO DIRECTO
+            if (a.getOrigen() == eliminado) {
+                a.setOrigen(representante);
+            }
+            if (a.getDestino() == eliminado) {
+                a.setDestino(representante);
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // PASO CRÍTICO 2: Fusionar Listas de Adyacencia y Actualizar Vecinos
+        // ---------------------------------------------------------------------
         // Recorrer los vecinos del vértice a ser eliminado (v2)
-        for (int vecino : adj[eliminado]) {
-            if (vecino == representante) continue; // Si es el representante, la arista se convertirá en auto-ciclo
+        // Usamos .count() o .find() para verificar si la llave existe antes de usar .at()
+        if (adj.count(eliminado)) {
+            for (int vecino : adj.at(eliminado)) {
+                // 1.1: Mover la arista a la lista del representante (si no es un auto-ciclo)
+                if (vecino == representante) continue;
 
-            // 1.1: Mover la arista a la lista del representante
-            adj[representante].push_back(vecino);
+                // Mover el ID del vecino a la lista del representante
+                adj[representante].push_back(vecino);
 
-            // 1.2: Actualizar la lista de adyacencia del vecino 'vecino'. 
-            // Esto asegura que 'vecino' ya no apunte a 'eliminado' sino a 'representante'.
-            auto& lista_vecino = adj[vecino];
-            for (int& v_id : lista_vecino) {
-                if (v_id == eliminado) {
-                    v_id = representante; // Reemplazar la referencia
+                // 1.2: Actualizar la lista de adyacencia del vecino 'vecino'. 
+                // Reemplazar todas las referencias al ID 'eliminado' por 'representante'.
+                if (adj.count(vecino)) {
+                    auto& lista_vecino = adj.at(vecino);
+                    for (int& v_id : lista_vecino) {
+                        if (v_id == eliminado) {
+                            v_id = representante;
+                        }
+                    }
                 }
             }
         }
 
-        // --- 2. Limpieza de Estructuras del Vértice Eliminado ---
+        // --- 3. Limpieza de Estructuras del Vértice Eliminado ---
         adj.erase(eliminado);
         vertices_activos.erase(eliminado);
 
-        // --- 3. Eliminar Auto-Ciclos y Actualizar todas_las_aristas ---
-        // Es crucial que esta función actualice tanto adj[representante] como todas_las_aristas
+        // --- 4. Eliminar Auto-Ciclos ---
         eliminar_auto_ciclos(representante);
     }
 
 
-    /**
-     * @brief Elimina aristas que conectan un vértice consigo mismo (auto-ciclos).
-     * @details Se debe limpiar tanto la lista de adyacencia (adj) como la lista de aristas
-     * global (todas_las_aristas).
-     */
     void eliminar_auto_ciclos(int v) {
+        if (!adj.count(v)) return; // Si el vértice no existe, no hay nada que hacer.
+
         // --- 1. Limpiar la Lista de Adyacencia del Vértice (v) ---
-        // Usamos erase-remove idiom para eliminar eficientemente de la lista de vecinos
-        auto& lista_vecinos = adj[v];
+        auto& lista_vecinos = adj.at(v);
         lista_vecinos.erase(
             std::remove(lista_vecinos.begin(), lista_vecinos.end(), v),
             lista_vecinos.end()
         );
 
-ron.
+        // --- 2. Limpiar la Lista Global de Aristas (todas_las_aristas) ---
+        // Elimina cualquier arista donde origen == destino (ya que fueron actualizados en contraer)
         todas_las_aristas.erase(
             std::remove_if(todas_las_aristas.begin(), todas_las_aristas.end(),
-                [v](const Arista& a) {
-                    // Un auto-ciclo se forma cuando (origen == destino) en el nuevo super-vértice
-                    // o cuando (origen y destino) son el mismo ID (v)
-                    return (a.origen == v && a.destino == v);
+                [](const Arista& a) {
+                    // USAR GETTERS
+                    return (a.getOrigen() == a.getDestino());
                 }),
             todas_las_aristas.end()
         );
-    }
-
-    /**
-     * @brief Cuenta el número de aristas que cruzan el corte final.
-     * @details Se llama cuando vertices_activos.size() == 2.
-     * @return int El tamaño del corte (número de aristas).
-     */
-    int contar_corte_final() const {
-        // Después de la última contracción, el grafo se reduce a dos super-vértices A y B.
-        // Las aristas que quedan en adj[A] y adj[B] son las que conectan A y B, y su número
-        // es el valor del corte.
-
-        if (vertices_activos.size() != 2) {
-            throw std::runtime_error("El conteo final solo debe ejecutarse con 2 vértices activos.");
-        }
-
-        // El tamaño de la lista de adyacencia del primer vértice restante es el número de aristas del corte.
-        // No es necesario sumar adj[A].size() + adj[B].size(), ya que ambas deben ser iguales
-        // y contarían el mismo conjunto de aristas.
-        int v_final_id = *vertices_activos.begin();
-
-        return adj.at(v_final_id).size();
-
-        // Alternativamente, se puede retornar simplemente: 
-        // return todas_las_aristas.size();
     }
 };
