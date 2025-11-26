@@ -127,7 +127,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Creador.cpp" />
+    <ClCompile Include="Grafo.cpp" />
     <ClCompile Include="Min_Cut.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Arista.h" />
+    <ClInclude Include="Creador.h" />
+    <ClInclude Include="Grafo.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="grafo.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
